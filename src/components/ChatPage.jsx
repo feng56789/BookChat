@@ -4,6 +4,8 @@ import { sendMessage } from '../utils/gemini'
 import { processFile } from '../utils/fileHandler'
 import { useSpeech } from '../hooks/useSpeech'
 
+const WELCOME_PROMPT = '请用你自己的风格做一个简短自然的自我介绍，像第一次见到朋友打招呼一样。不超过两句话。'
+
 function SettingsIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -41,19 +43,18 @@ function SendIcon() {
   )
 }
 
-function loadMessages(bookId, welcomeText) {
+function loadHistory(bookId) {
   try {
     const saved = localStorage.getItem(`bookchat_msgs_${bookId}`)
     if (saved) return JSON.parse(saved)
   } catch {}
-  return [{ id: 'welcome', role: 'ai', text: welcomeText }]
+  return []
 }
 
-function saveMessages(bookId, messages) {
+function saveHistory(bookId, messages) {
   try {
-    // Don't save image data to localStorage to avoid quota issues
     const toSave = messages
-      .filter((m) => !m.loading)
+      .filter((m) => !m.loading && !m.isWelcome)
       .map((m) => ({
         ...m,
         attachment: m.attachment?.type === 'pdf'
@@ -66,19 +67,63 @@ function saveMessages(bookId, messages) {
   } catch {}
 }
 
+const WELCOME_ID = 'welcome'
+
 export default function ChatPage({ book, apiKey, onOpenSettings }) {
-  const [messages, setMessages] = useState(() => loadMessages(book.id, book.welcome))
+  const history = loadHistory(book.id)
+  const [messages, setMessages] = useState([
+    { id: WELCOME_ID, role: 'ai', text: '', loading: true, isWelcome: true },
+    ...history,
+  ])
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState(null)
   const [fileLoading, setFileLoading] = useState(false)
   const [loading, setLoading] = useState(false)
+  const readyToSave = useRef(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const fileInputRef = useRef(null)
   const { autoRead, speak, toggleAutoRead } = useSpeech()
 
+  // Generate welcome on mount
   useEffect(() => {
-    saveMessages(book.id, messages)
+    if (!apiKey) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === WELCOME_ID
+            ? { ...m, text: '请先在设置页面输入 OpenRouter API Key 开始对话。', loading: false }
+            : m
+        )
+      )
+      readyToSave.current = true
+      return
+    }
+
+    sendMessage(apiKey, book.systemPrompt, [], WELCOME_PROMPT)
+      .then((text) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === WELCOME_ID ? { ...m, text, loading: false } : m
+          )
+        )
+      })
+      .catch(() => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === WELCOME_ID ? { ...m, text: '你好！有什么想聊的吗？', loading: false } : m
+          )
+        )
+      })
+      .finally(() => {
+        readyToSave.current = true
+      })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist conversation history (exclude welcome messages)
+  useEffect(() => {
+    if (readyToSave.current) {
+      saveHistory(book.id, messages)
+    }
   }, [messages, book.id])
 
   useEffect(() => {
@@ -135,11 +180,11 @@ export default function ChatPage({ book, apiKey, onOpenSettings }) {
     setLoading(true)
 
     try {
-      const history = messages
-        .filter((m) => m.id !== 'welcome' && !m.loading)
+      const conversationHistory = messages
+        .filter((m) => !m.isWelcome && !m.loading)
         .map((m) => ({ role: m.role, text: m.text }))
 
-      const reply = await sendMessage(apiKey, book.systemPrompt, history, text, currentAttachment)
+      const reply = await sendMessage(apiKey, book.systemPrompt, conversationHistory, text, currentAttachment)
 
       setMessages((prev) =>
         prev.map((m) =>
