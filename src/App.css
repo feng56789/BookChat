@@ -608,48 +608,117 @@
   padding: 0 4px;
 }
 
+/* ── Bottom Tab Bar (mobile only) ── */
+.bottom-tab-bar {
+  display: none;
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  height: 58px;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  border-top: 2px solid transparent;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 6px 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-item-active {
+  /* color and borderTopColor applied inline */
+  font-weight: 600;
+}
+
+.tab-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.tab-label {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
+  text-align: center;
+}
+
 /* ── Responsive ── */
-@media (min-width: 481px) {
+
+/* Desktop (641px+): rounded card, sidebar visible */
+@media (min-width: 641px) {
   .app-wrapper {
+    max-width: 480px;
     border-radius: 20px;
     height: min(860px, 95vh);
     margin: auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.12);
   }
 
   .app-wrapper-chat {
+    max-width: 780px;
+    flex-direction: row;
     border-radius: 20px;
     overflow: hidden;
   }
 
   .sidebar {
+    display: flex;
     border-radius: 20px 0 0 20px;
+  }
+
+  .bottom-tab-bar {
+    display: none;
   }
 }
 
-/* Mobile: narrow sidebar */
-@media (max-width: 480px) {
+/* Mobile (≤640px): full screen, bottom tab bar */
+@media (max-width: 640px) {
+  body {
+    background: #fff;
+  }
+
+  #root {
+    align-items: stretch;
+  }
+
+  .app-wrapper,
   .app-wrapper-chat {
     max-width: 100%;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+    flex-direction: column;
   }
 
   .sidebar {
-    width: 60px;
-  }
-
-  .sidebar-title,
-  .sidebar-book-info {
     display: none;
   }
 
-  .sidebar-header {
-    justify-content: center;
-    padding: 16px 0;
+  .bottom-tab-bar {
+    display: flex;
   }
 
-  .sidebar-item {
-    justify-content: center;
-    padding: 10px 0;
-    border-left: none;
-    border-bottom: 3px solid transparent;
+  .bubble-col {
+    max-width: 80%;
+  }
+
+  .header-title {
+    font-size: 14px;
+  }
+
+  .header-subtitle {
+    font-size: 11px;
   }
 }

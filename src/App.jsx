@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ChatPage from './components/ChatPage'
 import SettingsPage from './components/SettingsPage'
 import Sidebar from './components/Sidebar'
+import BottomTabBar from './components/BottomTabBar'
 import { BOOKS } from './data/books'
 import './App.css'
 
@@ -36,6 +37,7 @@ export default function App() {
         apiKey={apiKey}
         onOpenSettings={() => setPage('settings')}
       />
+      <BottomTabBar books={BOOKS} selectedId={selectedBookId} onSelect={setSelectedBookId} />
     </div>
   )
 }
